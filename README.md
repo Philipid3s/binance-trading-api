@@ -1,6 +1,6 @@
 ## prerequisites
 
-1. Create account on the Binance Test Sport Network: https://testnet.binance.vision/
+1. Create account on the Binance Spot Test Network: https://testnet.binance.vision/
 2. Generate API keys
 3. Rename config-sample.js to config.js and input the API key
 
