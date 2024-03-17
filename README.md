@@ -1,3 +1,5 @@
+REST API for interacting with the Binance trading platform
+
 ## prerequisites
 
 1. Create account on the Binance Spot Test Network: https://testnet.binance.vision/
