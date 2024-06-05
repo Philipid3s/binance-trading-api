@@ -48,6 +48,9 @@ const binanceSimpleRequest = async (method, endpoint, params = {}) => {
       method,
       url: `${BASE_URL}${endpoint}`,
       params,
+      headers: {
+        'X-MBX-APIKEY': config.apiKey,
+      },
     });
 
     return response.data;
