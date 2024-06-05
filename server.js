@@ -1,6 +1,6 @@
 // server.js
 const express = require('express');
-const { binanceRequest } = require('./binance');
+const { binanceRequest, binanceSimpleRequest } = require('./binance');
 
 const app = express();
 const port = 3000;
@@ -60,7 +60,7 @@ app.get('/spot-rate', async (req, res) => {
     }
   
     try {
-      const response = await binanceRequest('GET', '/ticker/price', {
+      const response = await binanceSimpleRequest('GET', '/ticker/price', {
         symbol,
       });
   

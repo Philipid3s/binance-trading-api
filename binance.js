@@ -42,4 +42,22 @@ const binanceRequest = async (method, endpoint, params = {}) => {
   }
 };
 
-module.exports = { binanceRequest };
+const binanceSimpleRequest = async (method, endpoint, params = {}) => {
+  try {
+    const response = await axios({
+      method,
+      url: `${BASE_URL}${endpoint}`,
+      params,
+    });
+
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      throw error.response.data;
+    } else {
+      throw error.message;
+    }
+  }
+};
+
+module.exports = { binanceRequest, binanceSimpleRequest };
