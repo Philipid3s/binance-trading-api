@@ -1,0 +1,5 @@
+price - BTC, ETH price
+balance - BTC, ETH, USDT balance
+lasttransactions - Latest transactions (last 24h)
+lastdeals - Latest deals (last 24h)
+nexttransactions - Next transactions

@@ -1,6 +1,6 @@
 // server.js
 const express = require('express');
-const { binanceRequest, binanceSimpleRequest } = require('./binance');
+const { binanceRequest } = require('./binance');
 
 const app = express();
 const port = 3000;
@@ -8,14 +8,14 @@ const port = 3000;
 app.use(express.json());
 
 app.get('/order', async (req, res) => {
-    const { symbol, side, quantity } = req.query;
+    const { user, symbol, side, quantity } = req.query;
   
-    if (!symbol || !side || !quantity) {
+    if (!user || !symbol || !side || !quantity) {
       return res.status(400).json({ error: 'Missing parameters: symbol, side, quantity' });
     }
   
     try {
-      const response = await binanceRequest('POST', '/order', {
+      const response = await binanceRequest(user, 'Y', 'POST', '/order', {
         symbol,
         side,
         type: 'MARKET',
@@ -28,15 +28,15 @@ app.get('/order', async (req, res) => {
 });
 
 app.get('/balance', async (req, res) => {
-    const { symbol } = req.query;
+    const { user, symbol } = req.query;
 
-    if (!symbol) {
+    if (!user || !symbol) {
       return res.status(400).json({ error: 'Missing parameter: symbol' });
     }
 
     
     try {
-        const response = await binanceRequest('GET', '/account');
+        const response = await binanceRequest(user, 'Y', 'GET', '/account');
 
         const balances = response.balances;
         const assetBalance = balances.find(asset => asset.asset === symbol.toUpperCase());
@@ -51,16 +51,15 @@ app.get('/balance', async (req, res) => {
     }
 });
 
-// Endpoint to retrieve spot rate of a specific symbol : works only on live URL !!!!
 app.get('/spot-rate', async (req, res) => {
-    const { symbol } = req.query;
+    const { user, symbol } = req.query;
   
-    if (!symbol) {
+    if (!user || !symbol) {
       return res.status(400).json({ error: 'Missing parameter: symbol' });
     }
   
     try {
-      const response = await binanceSimpleRequest('GET', '/ticker/price', {
+      const response = await binanceRequest(user, 'N', 'GET', '/ticker/price', {
         symbol,
       });
   

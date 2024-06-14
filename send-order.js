@@ -6,7 +6,7 @@ const SYMBOL = 'BTCUSDT'; // Change this to your desired trading pair
 const buyOrder = async () => {
   try {
     // Place a test market order for buying 0.001 BTC
-    const response = await binanceRequest('POST', '/order', {
+    const response = await binanceRequest('user1', 'Y', 'POST', '/order', {
       symbol: SYMBOL,
       side: 'BUY',
       type: 'MARKET',
