@@ -3,7 +3,7 @@ const { binanceRequest } = require('./binance');
 const getBalance = async () => {
     try {
       // Send GET request to retrieve account information
-      const response = await binanceRequest('GET', '/account');
+      const response = await binanceRequest('user1', 'Y', 'GET', '/account');
   
       console.log('Test Account Response:', response);
     } catch (error) {
