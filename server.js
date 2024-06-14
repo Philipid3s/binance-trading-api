@@ -11,7 +11,7 @@ app.get('/order', async (req, res) => {
     const { user, symbol, side, quantity } = req.query;
   
     if (!user || !symbol || !side || !quantity) {
-      return res.status(400).json({ error: 'Missing parameters: symbol, side, quantity' });
+      return res.status(400).json({ error: 'Missing parameters: symbol, side, quantity, user' });
     }
   
     try {
@@ -31,7 +31,7 @@ app.get('/balance', async (req, res) => {
     const { user, symbol } = req.query;
 
     if (!user || !symbol) {
-      return res.status(400).json({ error: 'Missing parameter: symbol' });
+      return res.status(400).json({ error: 'Missing parameter: symbol, user' });
     }
 
     
@@ -55,7 +55,7 @@ app.get('/spot-rate', async (req, res) => {
     const { user, symbol } = req.query;
   
     if (!user || !symbol) {
-      return res.status(400).json({ error: 'Missing parameter: symbol' });
+      return res.status(400).json({ error: 'Missing parameter: symbol, user' });
     }
   
     try {
