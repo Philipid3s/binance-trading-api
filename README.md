@@ -2,9 +2,16 @@ REST API for interacting with the Binance trading platform
 
 ## prerequisites
 
+### spot market
 1. Create account on the Binance Spot Test Network: https://testnet.binance.vision/
 2. Generate API keys
-3. Rename config-sample.js to config.js and input the API key
+
+### futures market
+3. Create account on the Binance Futures Test Network: https://testnet.binancefuture.com/
+4. Copy API keys from API Keys tab
+
+### config file
+5. Rename config-sample.js to config.js and input the API keys
 
 ## install NodeJS packages
 
@@ -14,40 +21,84 @@ REST API for interacting with the Binance trading platform
 
     npm start
 
-## API endpoints
+## Endpoints
 
-### Order Endpoint
+### Place Order
 
-    http://localhost:3000/order?symbol=BTCUSDT&side=BUY&quantity=0.001
-    
-**Description**: This endpoint allows you to place a market order for a specific symbol.
+**URL**: `/order`
 
-**URL**: /order
+**Method**: `GET`
 
-**Method**: GET
-
-**Parameters**:
-1. symbol: Trading pair symbol (e.g., BTCUSDT)
-2. side: Order side (BUY or SELL)
-3. quantity: Quantity of the asset to buy or sell
-
-**Response**:
-Successful response: Returns the response from the Binance API after placing the order.
-Error response: Returns an error message if any parameters are missing or if there's an error placing the order.
-
-### Balance Endpoint
-
-    localhost:3000/balance?symbol=BTC
-    
-**Description**: This endpoint allows you to retrieve the balance of a specific asset in your Binance account.
-
-**URL**: /balance
-
-**Method**: GET
-
-**Parameters**:
-1. symbol: Asset symbol for which you want to retrieve the balance (e.g., BTC)
+**Query Parameters**:
+- `user` (required): User identifier
+- `symbol` (required): Trading pair symbol (e.g., BTCUSDT)
+- `side` (required): Order side (BUY or SELL)
+- `quantity` (required): Order quantity
+- `market` (optional): Market type (`spot` or `futures`, default is `spot`)
+- `environment` (optional): Environment type (`testnet` or `live`, default is `testnet`)
 
 **Response**:
-Successful response: Returns the balance of the specified asset in your Binance account.
-Error response: Returns an error message if the symbol parameter is missing or if the asset is not found in your account balance.
+- JSON object containing the order response
+
+**Example**:
+
+```bash
+curl "http://localhost:3000/order?user=user1&symbol=BTCUSDT&side=BUY&quantity=0.01"
+```
+
+### Fetch Account Data
+
+**URL**: `/account`
+
+**Method**: `GET`
+
+**Query Parameters**:
+- `user` (required): User identifier
+- `market` (optional): Market type (`spot` or `futures`, default is `spot`)
+- `environment` (optional): Environment type (`testnet` or `live`, default is `testnet`)
+
+**Response**:
+- JSON object containing the order response
+
+**Example**:
+```bash
+curl "http://localhost:3000/account?user=user1"
+```
+
+### Check Balance
+**URL**: `/balance`
+
+**Method**: `GET`
+
+**Query Parameters**:
+- `user` (required): User identifier
+- `symbol` (required): Asset symbol (e.g., BTC)
+- `market` (optional): Market type (`spot` or `futures`, default is `spot`)
+- `environment` (optional): Environment type (`testnet` or `live`, default is `testnet`)
+
+**Response**:
+- JSON object containing the asset balance
+
+**Example**:
+```bash
+curl "http://localhost:3000/balance?user=user1&symbol=BTC"
+```
+
+### Retrieve Ticker Price
+**URL**: `/price`
+
+**Method**: `GET`
+
+**Query Parameters**:
+- `user` (required): User identifier
+- `symbol` (required): Trading pair symbol (e.g., BTCUSDT)
+- `market` (optional): Market type (`spot` or `futures`, default is `spot`)
+- `environment` (optional): Environment type (`testnet` or `live`, default is `testnet`)
+
+**Response**:
+- JSON object containing the ticker price
+
+**Example**:
+```bash
+curl "http://localhost:3000/balance?user=user1&symbol=BTC"
+```

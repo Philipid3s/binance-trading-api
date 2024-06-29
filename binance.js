@@ -1,14 +1,10 @@
 const axios = require('axios');
 const crypto = require('crypto');
 const getConfig = require('./config');
+const {BASE_URLS, ENDPOINTS} = require('./static');
 
-// live url
-// const BASE_URL = 'https://api.binance.com/api/v3';
-// test url
-const BASE_URL = 'https://testnet.binance.vision/api/v3';
-
-const getServerTime = async () => {
-  const { data: { serverTime } } = await axios.get(`${BASE_URL}/time`);
+const getServerTime = async (url) => {
+  const { data: { serverTime } } = await axios.get(url);
   return serverTime;
 };
 
@@ -16,21 +12,28 @@ const generateSignature = (apiSecret, queryString) => {
   return crypto.createHmac('sha256', apiSecret).update(queryString).digest('hex');
 };
 
-const binanceRequest = async (user, signed, method, endpoint, params = {}) => {
+const binanceRequest = async (user, request, params = {}, marketType = 'spot', environment = 'testnet') => {
   try {
-    console.log('User: ', user, ' | Endpoint: ', endpoint, ' | Method: ', method, ' | Signed: ', signed);
+    console.log('User: ', user, ' | Request: ', request);
 
-    const { apiKey, apiSecret } = getConfig(user);
+    const { apiKey, apiSecret } = getConfig(user, marketType, environment);
 
-    if (signed.toUpperCase() == 'Y') {
-      const serverTime = await getServerTime();
+    const baseUrl = BASE_URLS[marketType][environment];
+
+    const endpoint = ENDPOINTS[request][marketType];
+    const signed = ENDPOINTS[request]['signed'];
+    const method = ENDPOINTS[request]['method'];
+
+    if (signed.toUpperCase() === 'Y') {
+      const timeEndpoint = ENDPOINTS['time'][marketType];
+      const serverTime = await getServerTime(baseUrl + timeEndpoint);
       params.timestamp = serverTime;
       params.signature = generateSignature(apiSecret, new URLSearchParams(params).toString());
     }
 
     const response = await axios({
       method,
-      url: `${BASE_URL}${endpoint}`,
+      url: `${baseUrl}${endpoint}`,
       params,
       headers: {
         'X-MBX-APIKEY': apiKey,
