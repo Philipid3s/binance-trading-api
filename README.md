@@ -58,7 +58,7 @@ curl "http://localhost:3000/order?user=user1&symbol=BTCUSDT&side=BUY&quantity=0.
 - `environment` (optional): Environment type (`testnet` or `live`, default is `testnet`)
 
 **Response**:
-- JSON object containing the order response
+- JSON object containing the account data
 
 **Example**:
 ```bash
