@@ -27,6 +27,24 @@ app.get('/order', async (req, res) => {
     }
 });
 
+app.get('/cancel', async (req, res) => {
+  const { user, symbol, orderId, market = 'spot', environment = 'testnet' } = req.query;
+
+  if (!user || !symbol || !orderId) {
+    return res.status(400).json({ error: 'Missing parameters: symbol, orderId, user' });
+  }
+
+  try {
+    const response = await binanceRequest(user, 'cancel', {
+      symbol: symbol.toUpperCase(),
+      orderId: orderId,
+    }, market, environment);
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({ error: 'Error placing order' });
+  }
+});
+
 app.get('/account', async (req, res) => {
   const { user, market = 'spot', environment = 'testnet' } = req.query;
 
@@ -56,7 +74,7 @@ app.get('/balance', async (req, res) => {
         const response = await binanceRequest(user, 'account', {}, market, environment);
 
         let balances;
-        if (marketType == 'spot') {
+        if (market == 'spot') {
           balances = response.balances;
         } else {
           balances = response.assets;

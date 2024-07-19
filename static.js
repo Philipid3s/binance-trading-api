@@ -26,6 +26,13 @@ const ENDPOINTS = {
       method: 'POST',
       signed: 'Y'
     },
+    cancel: {
+      spot: '/api/v3/order',
+      futures: '/fapi/v1/order',
+  
+      method: 'DELETE',
+      signed: 'Y'
+    },
     price: {
       spot: '/api/v3/ticker/price',
       futures: '/fapi/v1/ticker/price',
