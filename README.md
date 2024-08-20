@@ -106,7 +106,28 @@ curl "http://localhost:3000/balance?user=user1&symbol=BTC"
 ### Historical Price
 **URL**: `/historical-price`
 
-Retrieve the historical price data for a specific symbol at a particular point in time.
+Fetch a single price at a specific datetime.
+
+**Method**: `GET`
+
+**Query Parameters**:
+- `user` (required): User identifier.
+- `symbol` (required): Trading pair symbol (e.g., BTCUSDT).
+- `datetime` (required): The specific datetime in YYYYMMDDHHmm format.
+- `interval` (optional): Data interval (1m, 5m, 15m, 30m, 1h, 4h, 1d, default is 1h).
+- `market` (optional): Market type (`spot` or `futures`, default is `spot`).
+- `environment` (optional): Environment type (`testnet` or `live`, default is `live`).       
+
+**Example**:
+
+```http
+GET /historical-price?user=testUser&symbol=BTCUSDT&datetime=202401020000&interval=1h
+```
+
+### Historical Price Range
+**URL**: `/historical-price-range`
+
+Fetch historical price data for a specific trading pair over a time range.
 
 **Method**: `GET`
 
@@ -122,5 +143,7 @@ Retrieve the historical price data for a specific symbol at a particular point i
 **Example**:
 
 ```http
-GET /historical-price?user=yourBinanceUser&symbol=BTCUSDT&startTime=202401010000&endTime=202401020000&interval=1h&market=spot&environment=live
+GET /historical-price-range?user=yourBinanceUser&symbol=BTCUSDT&startTime=202401010000&endTime=202401020000&interval=1h&market=spot&environment=live
 ```
+
+

@@ -111,7 +111,7 @@ app.get('/price', async (req, res) => {
     }
 });
 
-app.get('/historical-price', async (req, res) => {
+app.get('/historical-price-range', async (req, res) => {
   const { user, symbol, startTime, endTime, interval = '1h', market = 'spot', environment = 'live' } = req.query;
 
   if (!user || !symbol || !startTime || !endTime) {
@@ -181,7 +181,96 @@ app.get('/historical-price', async (req, res) => {
   }
 });
 
+app.get('/historical-price', async (req, res) => {
+  const { user, symbol, datetime, interval = '1h', market = 'spot', environment = 'live' } = req.query;
 
+  if (!user || !symbol || !datetime) {
+    return res.status(400).json({ error: 'Missing parameters: symbol, datetime, user' });
+  }
+
+  try {
+    // Parse datetime
+    const timestamp = moment(datetime, 'YYYYMMDDHHmm').valueOf();
+
+    if (isNaN(timestamp)) {
+      return res.status(400).json({ error: 'Invalid datetime format. Use YYYYMMDDHHmm' });
+    }
+
+    // Convert symbol to uppercase
+    const upperCaseSymbol = symbol.toUpperCase();
+
+    // Calculate the startTime and endTime to fetch the exact candle
+    let startTime;
+    let endTime;
+
+    switch (interval) {
+      case '1m':
+        startTime = timestamp;
+        endTime = timestamp + 60 * 1000;
+        break;
+      case '5m':
+        startTime = timestamp;
+        endTime = timestamp + 5 * 60 * 1000;
+        break;
+      case '15m':
+        startTime = timestamp;
+        endTime = timestamp + 15 * 60 * 1000;
+        break;
+      case '30m':
+        startTime = timestamp;
+        endTime = timestamp + 30 * 60 * 1000;
+        break;
+      case '1h':
+        startTime = timestamp;
+        endTime = timestamp + 60 * 60 * 1000;
+        break;
+      case '4h':
+        startTime = timestamp;
+        endTime = timestamp + 4 * 60 * 60 * 1000;
+        break;
+      case '1d':
+        startTime = timestamp;
+        endTime = timestamp + 24 * 60 * 60 * 1000;
+        break;
+      default:
+        return res.status(400).json({ error: 'Unsupported interval' });
+    }
+
+    // Fetch the historical data from Binance API
+    const response = await binanceRequest(user, 'klines', {
+      symbol: upperCaseSymbol,
+      interval,
+      startTime,
+      endTime,
+      limit: 1, // We only need one data point
+    }, market, environment);
+
+    if (!response || response.length === 0) {
+      return res.status(404).json({ error: 'No data found for the given datetime' });
+    }
+
+    // Extract relevant data from the response
+    const [openTime, open, high, low, close] = response[0];
+    const singlePriceData = {
+      time: moment(openTime).format('YYYYMMDDHHmm'),
+      open,
+      high,
+      low,
+      close,
+    };
+
+    res.json({ symbol: upperCaseSymbol, interval, data: singlePriceData });
+  } catch (error) {
+    console.error('Error fetching single price:', error);
+
+    // Check if the error response is an object and format it appropriately
+    const errorDetails = error.response && error.response.data
+      ? JSON.stringify(error.response.data)
+      : error.message;
+
+    res.status(500).json({ error: 'Error fetching single price', details: errorDetails });
+  }
+});
 
 
 app.listen(port, () => {
