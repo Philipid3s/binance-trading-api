@@ -113,13 +113,14 @@ Retrieve the historical price data for a specific symbol at a particular point i
 **Query Parameters**:
 - `user` (required): User identifier.
 - `symbol` (required): Trading pair symbol (e.g., BTCUSDT).
-- `time` (required): Time for the historical price data in `YYYYMMDDHHmm` format.
-- `interval` (optional): Interval for the historical data (`1m`, `3m`, `5m`, `15m`, `30m`, `1h`, etc.; default is `1h`).
+- `startTime` (required): Start time in YYYYMMDDHHmm format.
+- `endTime` (required): End time in YYYYMMDDHHmm format.
+- `interval` (optional): Data interval (1m, 5m, 15m, 30m, 1h, 4h, 1d, default is 1h).
 - `market` (optional): Market type (`spot` or `futures`, default is `spot`).
 - `environment` (optional): Environment type (`testnet` or `live`, default is `live`).                                    |
 
 **Example**:
 
-```bash
-curl "http://localhost:3000/historical-price?user=user1&symbol=BTCUSDT&time=202308121230"
+```http
+GET /historical-price?user=yourBinanceUser&symbol=BTCUSDT&startTime=202401010000&endTime=202401020000&interval=1h&market=spot&environment=live
 ```

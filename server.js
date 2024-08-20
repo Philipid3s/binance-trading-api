@@ -112,44 +112,76 @@ app.get('/price', async (req, res) => {
 });
 
 app.get('/historical-price', async (req, res) => {
-  const { user, symbol, time, interval = '1h', market = 'spot', environment = 'live' } = req.query;
+  const { user, symbol, startTime, endTime, interval = '1h', market = 'spot', environment = 'live' } = req.query;
 
-  if (!user || !symbol || !time) {
-      return res.status(400).json({ error: 'Missing parameters: symbol, time, user' });
+  if (!user || !symbol || !startTime || !endTime) {
+    return res.status(400).json({ error: 'Missing parameters: symbol, startTime, endTime, user' });
   }
 
   try {
-      const startTime = moment(time, 'YYYYMMDDHHmm').valueOf();
+    // Parse startTime and endTime
+    const startTimestamp = moment(startTime, 'YYYYMMDDHHmm').valueOf();
+    const endTimestamp = moment(endTime, 'YYYYMMDDHHmm').valueOf();
 
-      if (isNaN(startTime)) {
-          return res.status(400).json({ error: 'Invalid time format. Use YYYYmmDDHHmm' });
-      }
+    if (isNaN(startTimestamp) || isNaN(endTimestamp)) {
+      return res.status(400).json({ error: 'Invalid datetime format. Use YYYYMMDDHHmm' });
+    }
 
-      // Extending the endTime to be more inclusive
-      const endTime = startTime + 60 * 60000; // 1 hour range
+    if (endTimestamp <= startTimestamp) {
+      return res.status(400).json({ error: 'endTime must be greater than startTime' });
+    }
 
-      console.log(`Fetching data for ${symbol} from ${startTime} to ${endTime}`);
+    // Convert symbol to uppercase
+    const upperCaseSymbol = symbol.toUpperCase();
 
+    // Binance API allows a max of 1000 data points per request, we'll paginate if needed.
+    let currentTime = startTimestamp;
+    let allData = [];
+
+    while (currentTime < endTimestamp) {
       const response = await binanceRequest(user, 'klines', {
-          symbol: symbol.toUpperCase(),
-          interval,
-          startTime,
-          endTime,
-          limit: 500,
+        symbol: upperCaseSymbol,
+        interval,
+        startTime: currentTime,
+        endTime: Math.min(currentTime + (500 * 60 * 60000), endTimestamp), // Fetch up to 500 hours at a time
+        limit: 500,
       }, market || 'spot', environment || 'testnet');
 
       if (!response || response.length === 0) {
-          return res.status(404).json({ error: 'No historical data found for the given time' });
+        break;
       }
 
-      const [openTime, open, high, low, close] = response[0];
+      allData = allData.concat(response);
+      currentTime = response[response.length - 1][0] + 1; // Move to the next interval
+    }
 
-      res.json({ symbol, time: moment(openTime).format('YYYYMMDDHHmm'), open, high, low, close });
+    if (allData.length === 0) {
+      return res.status(404).json({ error: 'No historical data found for the given time range' });
+    }
+
+    // Extracting relevant information
+    const formattedData = allData.map(([openTime, open, high, low, close]) => ({
+      time: moment(openTime).format('YYYYMMDDHHmm'),
+      open,
+      high,
+      low,
+      close,
+    }));
+
+    res.json({ symbol: upperCaseSymbol, interval, data: formattedData });
   } catch (error) {
-      console.error('Error fetching historical price:', error);
-      res.status(500).json({ error: 'Error fetching historical price' });
+    console.error('Error fetching historical price:', error);
+
+    // Check if the error response is an object and format it appropriately
+    const errorDetails = error.response && error.response.data
+      ? JSON.stringify(error.response.data)
+      : error.message;
+
+    res.status(500).json({ error: 'Error fetching historical price', details: errorDetails });
   }
 });
+
+
 
 
 app.listen(port, () => {
