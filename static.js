@@ -5,7 +5,7 @@ const BASE_URLS = {
       live: 'https://api.binance.com',
     },
     futures: {
-      testnet: 'https://testnet.binancefuture.com',
+      testnet: 'https://demo-fapi.binance.com',
       live: 'https://fapi.binance.com',
     },
   };
@@ -35,21 +35,21 @@ const ENDPOINTS = {
     },
     price: {
       spot: '/api/v3/ticker/price',
-      futures: '/fapi/v1/ticker/price',
+      futures: '/fapi/v2/ticker/price',
   
       method: 'GET',
       signed: 'N'
     },
     account: {
       spot: '/api/v3/account',
-      futures: '/fapi/v2/account',
+      futures: '/fapi/v3/account',
   
       method: 'GET',
       signed: 'Y'
     },
     klines: {
       spot: '/api/v3/klines',
-      futures: '/api/v3/klines',
+      futures: '/fapi/v1/klines',
   
       method: 'GET',
       signed: 'N'

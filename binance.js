@@ -12,6 +12,28 @@ const generateSignature = (apiSecret, queryString) => {
   return crypto.createHmac('sha256', apiSecret).update(queryString).digest('hex');
 };
 
+const normalizeBinanceError = (error) => {
+  if (error && error.response) {
+    const { status, data } = error.response;
+    const message = (data && typeof data === 'object' && (data.msg || data.message))
+      || (typeof data === 'string' ? data : 'Binance API request failed');
+
+    return {
+      message,
+      status: status || 500,
+      code: data && typeof data === 'object' ? data.code : undefined,
+      details: data,
+    };
+  }
+
+  return {
+    message: error && error.message ? error.message : 'Unexpected request error',
+    status: 500,
+    code: undefined,
+    details: undefined,
+  };
+};
+
 const binanceRequest = async (user, request, params = {}, marketType = 'spot', environment = 'testnet') => {
   try {
     console.log('User: ', user, ' | Request: ', request);
@@ -23,32 +45,34 @@ const binanceRequest = async (user, request, params = {}, marketType = 'spot', e
     const endpoint = ENDPOINTS[request][marketType];
     const signed = ENDPOINTS[request]['signed'];
     const method = ENDPOINTS[request]['method'];
+    const requestParams = { ...params };
 
     if (signed.toUpperCase() === 'Y') {
       const timeEndpoint = ENDPOINTS['time'][marketType];
       const serverTime = await getServerTime(baseUrl + timeEndpoint);
-      params.timestamp = serverTime;
-      params.signature = generateSignature(apiSecret, new URLSearchParams(params).toString());
+      requestParams.timestamp = serverTime;
+      requestParams.signature = generateSignature(apiSecret, new URLSearchParams(requestParams).toString());
     }
 
     const response = await axios({
       method,
       url: `${baseUrl}${endpoint}`,
-      params,
+      params: requestParams,
       headers: {
         'X-MBX-APIKEY': apiKey,
       },
     });
     return response.data;
   } catch (error) {
-    if (error.response) {
-      console.error('Error response from Binance:', error.response.data);
-      throw new Error(error.response.data);
-    } else {
-      console.error('Error:', error.message);
-      throw new Error(error.message);
-    }
+    const normalizedError = normalizeBinanceError(error);
+    console.error('Error response from Binance:', normalizedError.details || normalizedError.message);
+
+    const wrappedError = new Error(normalizedError.message);
+    wrappedError.status = normalizedError.status;
+    wrappedError.code = normalizedError.code;
+    wrappedError.details = normalizedError.details;
+    throw wrappedError;
   }
 };
 
-module.exports = { binanceRequest };
+module.exports = { binanceRequest, generateSignature, normalizeBinanceError };
