@@ -75,6 +75,14 @@ const sendServerError = (res, error, message) => {
   res.status(error.status || 500).json({ error: message, details });
 };
 
+const getRequestInput = (req) => {
+  if (req.method === 'GET') {
+    return req.query;
+  }
+
+  return req.body;
+};
+
 const parseAuthTokens = (input) => {
   if (Array.isArray(input)) {
     return input.map((token) => String(token).trim()).filter(Boolean);
@@ -125,8 +133,8 @@ const createApp = ({ binanceRequest = defaultBinanceRequest, authTokens } = {}) 
   app.use(express.json());
   app.use(createAuthMiddleware(configuredTokens));
 
-  app.post('/order', async (req, res) => {
-    const { user, symbol, side, quantity, market = 'spot', environment = 'testnet' } = req.body;
+  const handleOrder = async (req, res) => {
+    const { user, symbol, side, quantity, market = 'spot', environment = 'testnet' } = getRequestInput(req);
 
     const validationError = validateUser(user)
       || validateSymbol(symbol)
@@ -150,7 +158,10 @@ const createApp = ({ binanceRequest = defaultBinanceRequest, authTokens } = {}) 
     } catch (error) {
       sendServerError(res, error, 'Error placing order');
     }
-  });
+  };
+
+  app.get('/order', handleOrder);
+  app.post('/order', handleOrder);
 
   app.delete('/cancel', async (req, res) => {
     const { user, symbol, orderId, market = 'spot', environment = 'testnet' } = req.body;

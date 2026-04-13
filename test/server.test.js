@@ -1,4 +1,5 @@
 const request = require('supertest');
+const moment = require('moment');
 const { createApp } = require('../server');
 
 describe('server routes', () => {
@@ -26,6 +27,30 @@ describe('server routes', () => {
     expect(response.status).toBe(400);
     expect(response.body.error).toContain('Invalid side');
     expect(mockBinanceRequest).not.toHaveBeenCalled();
+  });
+
+  test('supports legacy GET /order query interface', async () => {
+    const mockBinanceRequest = jest.fn().mockResolvedValue({ orderId: 123 });
+    const app = createApp({ binanceRequest: mockBinanceRequest, authTokens: [authToken] });
+
+    const response = await withAuth(request(app)
+      .get('/order')
+      .query({ user: '2', symbol: 'BTCUSDT', side: 'BUY', quantity: '0.01' }));
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ orderId: 123 });
+    expect(mockBinanceRequest).toHaveBeenCalledWith(
+      '2',
+      'order',
+      {
+        symbol: 'BTCUSDT',
+        side: 'BUY',
+        type: 'MARKET',
+        quantity: '0.01',
+      },
+      'spot',
+      'testnet'
+    );
   });
 
   test('returns 400 for invalid market in price route', async () => {
@@ -60,6 +85,29 @@ describe('server routes', () => {
       'spot',
       'testnet'
     );
+    expect(response.body).toEqual({
+      symbol: 'BTCUSDT',
+      interval: '1h',
+      data: {
+        time: moment(1704067200000).format('YYYYMMDDHHmm'),
+        open: '42000',
+        high: '42100',
+        low: '41900',
+        close: '42050',
+      },
+    });
+  });
+
+  test('returns 404 when no candle exists for historical-price route', async () => {
+    const mockBinanceRequest = jest.fn().mockResolvedValue([]);
+    const app = createApp({ binanceRequest: mockBinanceRequest, authTokens: [authToken] });
+
+    const response = await withAuth(request(app)
+      .get('/historical-price')
+      .query({ user: '2', symbol: 'BTCUSDT', datetime: '202401010000', interval: '1h' }));
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: 'No data found for the given datetime' });
   });
 
   test('returns 400 for invalid historical interval', async () => {
