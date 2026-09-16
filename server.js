@@ -1,6 +1,7 @@
 // server.js
 require('dotenv').config();
 
+const crypto = require('crypto');
 const express = require('express');
 const moment = require('moment');
 const { binanceRequest: defaultBinanceRequest } = require('./binance');
@@ -102,36 +103,93 @@ const getRequestToken = (req) => {
   }
 
   const authorization = req.get('authorization');
-  if (authorization && authorization.startsWith('Bearer ')) {
-    return authorization.slice(7).trim();
+  if (authorization) {
+    const bearer = /^Bearer[ 	]+(.+)$/i.exec(authorization);
+    if (bearer) {
+      return bearer[1].trim();
+    }
   }
 
   return '';
 };
 
-const createAuthMiddleware = (authTokens) => (req, res, next) => {
-  const providedToken = getRequestToken(req);
+// Hashing first gives every comparison a fixed 32-byte width, so timingSafeEqual
+// never throws on a length mismatch and the token length itself does not leak.
+const digest = (value) => crypto.createHash('sha256').update(String(value)).digest();
 
-  if (!providedToken) {
-    return res.status(401).json({ error: `Missing auth token. Provide '${API_KEY_HEADER}' header or Bearer token.` });
+const assessTokenStrength = (token) => {
+  const distinct = new Set(token).size;
+  if (token.length < 24 || distinct < 12) {
+    return `weak (length ${token.length}, ${distinct} distinct characters)`;
   }
+  return null;
+};
 
-  if (!authTokens.includes(providedToken)) {
-    return res.status(403).json({ error: 'Invalid auth token' });
-  }
+const createAuthMiddleware = (authTokens) => {
+  const tokenDigests = authTokens.map(digest);
 
-  return next();
+  return (req, res, next) => {
+    const providedToken = getRequestToken(req);
+
+    if (!providedToken) {
+      res.set('WWW-Authenticate', `ApiKey realm="binance-trading-api", header="${API_KEY_HEADER}"`);
+      return res.status(401).json({ error: `Missing auth token. Provide '${API_KEY_HEADER}' header or Bearer token.` });
+    }
+
+    const providedDigest = digest(providedToken);
+    // Deliberately compares against every token with no early exit.
+    let matched = false;
+    for (const tokenDigest of tokenDigests) {
+      if (crypto.timingSafeEqual(tokenDigest, providedDigest)) {
+        matched = true;
+      }
+    }
+
+    if (!matched) {
+      return res.status(403).json({ error: 'Invalid auth token' });
+    }
+
+    return next();
+  };
 };
 
 const createApp = ({ binanceRequest = defaultBinanceRequest, authTokens } = {}) => {
+  const fromEnvironment = authTokens === undefined;
   const configuredTokens = parseAuthTokens(authTokens || process.env.API_AUTH_TOKENS || process.env.API_AUTH_TOKEN);
   if (configuredTokens.length === 0) {
     throw new Error('Missing API auth token configuration. Set API_AUTH_TOKEN or API_AUTH_TOKENS.');
   }
 
+  if (fromEnvironment) {
+    configuredTokens.forEach((token, index) => {
+      if (token === 'replace-with-strong-token') {
+        throw new Error('API_AUTH_TOKEN is still the sample placeholder. Generate one with: openssl rand -hex 32');
+      }
+
+      const weakness = assessTokenStrength(token);
+      if (weakness) {
+        console.warn(`Warning: configured auth token #${index + 1} is ${weakness}. Generate one with: openssl rand -hex 32`);
+      }
+    });
+  }
+
   const app = express();
-  app.use(express.json());
+  // Authenticate before parsing a body, so an unauthenticated caller can never
+  // reach the JSON parser or the errors it raises.
   app.use(createAuthMiddleware(configuredTokens));
+  app.use(express.json());
+  app.use((err, req, res, next) => {
+    if (!err) {
+      return next();
+    }
+    if (err.type === 'entity.parse.failed') {
+      return res.status(400).json({ error: 'Invalid JSON body' });
+    }
+    if (err.type === 'entity.too.large') {
+      return res.status(413).json({ error: 'Request body too large' });
+    }
+    return res.status(err.status || 500).json({ error: 'Request could not be processed' });
+  });
 
   const handleOrder = async (req, res) => {
     const { user, symbol, side, quantity, market = 'spot', environment = 'testnet' } = getRequestInput(req);
